@@ -13,7 +13,7 @@ clear
 WELCOME="These drivers will be compiled and installed:\n
 - CAN driver (SocketCAN)\n
 These software components will be installed:\n
-- ixconfig, ixbus, autoconf, libtool, unzip, libsocketcan, can-utils\n
+- ixconfig, ixbus, cmake, libtool, unzip, libsocketcan, can-utils\n
 Important: create a backup copy of the system before installation!\n
 continue installation?"
 
@@ -134,7 +134,7 @@ if [ ! -f "/usr/local/bin/cansend" ]; then
  if (whiptail --title "emPC-A/RPI3 Installation Script" --yesno "Third party SocketCan library and utilities\n\n- libsocketcan-0.0.10\n- can-utils\n - candump\n - cansend\n - cangen\n\ninstall?" 16 60) then
 
     apt-get -y install git
-    apt-get -y install autoconf
+    apt-get -y install cmake
     apt-get -y install libtool
 
     cd /usr/src/
@@ -149,9 +149,10 @@ if [ ! -f "/usr/local/bin/cansend" ]; then
 
     git clone https://github.com/linux-can/can-utils.git
     cd can-utils
-    ./autogen.sh
-    ./configure && make && make install
-
+    mkdir build
+    cd build
+    cmake .. && make install
+        
  fi
 fi
 
