@@ -6,6 +6,11 @@ ERR='\033[0;31m'
 INFO='\033[0;32m'
 NC='\033[0m' # No Color
 
+if [ $EUID -ne 0 ]; then
+    echo "This script should be run as root."
+    exit 1
+fi
+
 KERNEL=$(uname -r)
 
 
@@ -31,11 +36,9 @@ if [ ! -f "/lib/modules/$KERNEL/build" ]; then
  ln -s /usr/src/linux-headers-$KERNEL/ /lib/modules/$KERNEL/build
 fi 
 
-# get installed gcc version
-GCCVERBACKUP=$(gcc --version | egrep -o '[0-9]+\.[0-9]+' | head -n 1)
+
 # get gcc version of installed kernel
 GCCVER=$(cat /proc/version | egrep -o 'gcc version [0-9]+\.[0-9]+' | egrep -o '[0-9.]+')
-
 
 gcc --version | grep "$GCCVER" || (echo "$ERR Error: gcc $GCCVER not found! $NC"; exit 1);
 
@@ -45,7 +48,7 @@ mkdir -p /tmp/empc-x-linux-drivers
 cd /tmp/empc-x-linux-drivers
 
 
-# compile jtec_can driver
+# Compile jtec_can driver
 wget -nv https://github.com/janztec/empc-x-linux-drivers/raw/master/src/jtec_can.zip -O jtec_can.zip
 unzip jtec_can.zip
 pushd jtec_can
@@ -59,7 +62,8 @@ fi
 
 popd
 
-# compile i2c-ixssm driver
+
+# Compile i2c-ixssm driver
 wget -nv https://github.com/janztec/empc-x-linux-drivers/raw/master/src/i2c-ixssm.zip -O i2c-ixssm.zip
 unzip i2c-ixssm.zip
 pushd i2c-ixssm
@@ -73,6 +77,8 @@ fi
 
 popd
 
+
+# Add i2c_dev to /etc/modules if not already present
 if ! cat /etc/modules | grep i2c_dev > /dev/null; then
     echo "" >> /etc/modules
     echo "i2c_dev" >> /etc/modules
@@ -80,16 +86,18 @@ fi
 
 depmod -a
 
+# Set required iomem=relaxed commandline parameter in grub config
 if ! cat /etc/default/grub | grep iomem=relaxed > /dev/null; then
     if ! cat /etc/default/grub | grep quiet  > /dev/null; then
         echo -e "$ERR Error: Installation failed! quiet entry in GRUB_CMDLINE_LINUX_DEFAULT not found! $NC" 1>&2
         whiptail --title "Error" --msgbox "Installation failed! quiet entry in GRUB_CMDLINE_LINUX_DEFAULT not found!" 10 60
+		exit 1
     fi
     sed -i 's/quiet/quiet iomem=relaxed reboot=acpi/' /etc/default/grub
     update-grub
 fi
 
-# install ixconfig
+# Install ixconfig
 mkdir -p /usr/janz/bin
 ARCH=$(getconf LONG_BIT)
 if [ $ARCH -eq 64 ]; then
@@ -107,18 +115,26 @@ fi
 chmod 755 /usr/janz/bin/ixconfig
 
 
-# Install ixbus init service
-wget -nv https://raw.githubusercontent.com/janztec/empc-x-linux-drivers/master/src/ixbus -O /etc/init.d/ixbus
-if [ ! -f "/etc/init.d/ixbus" ]; then
- echo -e "$ERR Error: Installation failed! (ixconfig not installed) $NC" 1>&2
- whiptail --title "Error" --msgbox "Installation failed! (ixconfig not installed)" 10 60
+# Install ixbus systemd service
+wget -nv https://raw.githubusercontent.com/janztec/empc-x-linux-drivers/master/src/ixbus.service -O /usr/lib/systemd/system/ixbus.service
+if [ ! -f "/usr/lib/systemd/system/ixbus.service" ]; then
+ echo -e "$ERR Error: Installation failed! (ixbus.service not installed) $NC" 1>&2
+ whiptail --title "Error" --msgbox "Installation failed! (ixbus.service not installed)" 10 60
+ exit 1
+fi
+mkdir -p /opt/janztec/services
+wget -nv https://raw.githubusercontent.com/janztec/empc-x-linux-drivers/master/src/ixbus.sh -O /opt/janztec/services/ixbus.sh
+if [ ! -f "/opt/janztec/services/ixbus.sh" ]; then
+ echo -e "$ERR Error: Installation failed! (ixbus.sh not installed) $NC" 1>&2
+ whiptail --title "Error" --msgbox "Installation failed! (ixbus.sh not installed)" 10 60
  exit 1
 fi
 
-chmod 755 /etc/init.d/ixbus
-update-rc.d ixbus defaults
+chmod 755 /opt/janztec/services/ixbus.sh
+systemctl enable ixbus.service
 
 
+# Install can baudrate configuration script
 wget -nv https://raw.githubusercontent.com/janztec/empc-x-linux-drivers/master/scripts/empc-can-configbaudrate.sh -O /usr/bin/empc-can-configbaudrate.sh
 if [ ! -f "/usr/bin/empc-can-configbaudrate.sh" ]; then
  echo -e "$ERR Error: Installation failed! (empc-can-configbaudrate not installed) $NC" 1>&2
@@ -130,40 +146,15 @@ chmod 755 /usr/bin/empc-can-configbaudrate.sh
 bash /usr/bin/empc-can-configbaudrate.sh
 
 
-if [ ! -f "/usr/local/bin/cansend" ]; then
- if (whiptail --title "emPC-A/RPI3 Installation Script" --yesno "Third party SocketCan library and utilities\n\n- libsocketcan-0.0.10\n- can-utils\n - candump\n - cansend\n - cangen\n\ninstall?" 16 60) then
-
-    apt-get -y install git
-    apt-get -y install autoconf
-    apt-get -y install libtool
-
-    cd /usr/src/
-
-    wget http://www.pengutronix.de/software/libsocketcan/download/libsocketcan-0.0.10.tar.bz2
-    tar xvjf libsocketcan-0.0.10.tar.bz2
-    rm -rf libsocketcan-0.0.10.tar.bz2
-    cd libsocketcan-0.0.10
-    ./configure && make && make install
-
-    cd /usr/src/
-
-    git clone https://github.com/linux-can/can-utils.git
-    cd can-utils
-    ./autogen.sh
-    ./configure && make && make install
-
- fi
+# Install can-utils from apt repository
+if ! dpkg-query -W -f='${db:Status-Status}' can-utils 2>/dev/null | grep -qx 'installed'; then
+    if whiptail --title "emPC-X Installation Script" --yesno "can utils linux tools:\n - candump\n - cansend\n - cangen\n\ninstall?" 16 60; then
+        apt-get -y install can-utils
+    fi
 fi
 
 
-
-
 cd /
-
-
-
 if (whiptail --title "emPC-X Installation Script" --yesno "Installation completed! reboot required\n\nreboot now?" 12 60) then
-
-    reboot
-
+	reboot
 fi

@@ -1,0 +1,11 @@
+[Unit]
+Description=Retrieve devices on the ixbus and load the appropriate drivers
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/janztec/services/ixbus.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
