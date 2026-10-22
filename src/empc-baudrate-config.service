@@ -1,0 +1,13 @@
+[Unit]
+Description=Configure emPC-X SocketCAN baud rates
+Requires=ixbus.service
+After=ixbus.service
+ConditionPathExists=/etc/empc-can.conf
+
+[Service]
+Type=oneshot
+ExecStart=/opt/janztec/services/empc-baudrate-config
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

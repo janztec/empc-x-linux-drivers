@@ -21,6 +21,16 @@ wget https://raw.githubusercontent.com/janztec/empc-x-linux-drivers/master/insta
 bash install-experimental.sh
 ```
 
+## Configure can baud rate
+
+The installer runs `empc-can-configbaudrate.sh` to select a baud rate for each CAN interface.
+
+To change the rates later, execute the configuration script again:
+
+```
+sudo /usr/bin/empc-can-configbaudrate.sh
+```
+
 ## Product Pages
 https://www.janztec.com/en/products/embedded-computing/embedded-pc/empc-x/
 

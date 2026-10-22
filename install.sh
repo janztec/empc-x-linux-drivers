@@ -136,15 +136,35 @@ chmod 755 /opt/janztec/services/ixbus.sh
 systemctl enable ixbus.service
 
 
-# Install can baudrate configuration script
+# Install CAN baud rate configuration script and systemd service
 wget -nv https://raw.githubusercontent.com/janztec/empc-x-linux-drivers/master/scripts/empc-can-configbaudrate.sh -O /usr/bin/empc-can-configbaudrate.sh
-if [ ! -f "/usr/bin/empc-can-configbaudrate.sh" ]; then
+if [ ! -s "/usr/bin/empc-can-configbaudrate.sh" ]; then
  echo -e "$ERR Error: Installation failed! (empc-can-configbaudrate not installed) $NC" 1>&2
  whiptail --title "Error" --msgbox "Installation failed! (empc-can-configbaudrate not installed)" 10 60
  exit 1
 fi
-
 chmod 755 /usr/bin/empc-can-configbaudrate.sh
+
+wget -nv https://raw.githubusercontent.com/janztec/empc-x-linux-drivers/master/src/empc-baudrate-config -O /opt/janztec/services/empc-baudrate-config
+if [ ! -s "/opt/janztec/services/empc-baudrate-config" ]; then
+ echo -e "$ERR Error: Installation failed! (empc-baudrate-config not installed) $NC" 1>&2
+ whiptail --title "Error" --msgbox "Installation failed! (empc-baudrate-config not installed)" 10 60
+ exit 1
+fi
+chmod 755 /opt/janztec/services/empc-baudrate-config
+
+wget -nv https://raw.githubusercontent.com/janztec/empc-x-linux-drivers/master/src/empc-baudrate-config.service -O /usr/lib/systemd/system/empc-baudrate-config.service
+if [ ! -s "/etc/systemd/system/empc-baudrate-config.service" ]; then
+ echo -e "$ERR Error: Installation failed! (empc-baudrate-config.service not installed) $NC" 1>&2
+ whiptail --title "Error" --msgbox "Installation failed! (empc-baudrate-config.service not installed)" 10 60
+ exit 1
+fi
+
+if ! systemctl daemon-reload || ! systemctl enable empc-baudrate-config.service; then
+ echo -e "$ERR Error: Installation failed! (empc-baudrate-config.service could not be enabled) $NC" 1>&2
+ whiptail --title "Error" --msgbox "Installation failed! (empc-baudrate-config.service could not be enabled)" 10 60
+ exit 1
+fi
 bash /usr/bin/empc-can-configbaudrate.sh
 
 

@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -eu
+
+CONFIG_FILE=/etc/empc-can.conf
+
+if [ ! -r "$CONFIG_FILE" ]; then
+    echo "CAN configuration file is not readable: $CONFIG_FILE" >&2
+    exit 1
+fi
+
+while read -r interface bitrate extra || [ -n "${interface:-}" ]; do
+    [ -z "${interface:-}" ] && continue
+    [[ "$interface" = \#* ]] && continue
+    if [[ ! "$interface" =~ ^can[0-9]+$ ]] ||
+        [[ ! "$bitrate" =~ ^(1000000|500000|250000|125000|100000|50000|20000|10000)$ ]] ||
+        [ -n "${extra:-}" ]; then
+        echo "Invalid CAN configuration entry: $interface ${bitrate:-} ${extra:-}" >&2
+        exit 1
+    fi
+
+    if ! ip link show dev "$interface" >/dev/null 2>&1; then
+        echo "CAN interface does not exist: $interface" >&2
+        exit 1
+    fi
+    ip link set dev "$interface" down
+    ip link set dev "$interface" type can bitrate "$bitrate" triple-sampling on
+    ip link set dev "$interface" txqueuelen 1000 up
+done < "$CONFIG_FILE"
