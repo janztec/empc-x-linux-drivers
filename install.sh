@@ -49,9 +49,10 @@ cd /tmp/empc-x-linux-drivers
 
 
 # Compile jtec_can driver
-wget -nv https://github.com/janztec/empc-x-linux-drivers/raw/master/src/jtec_can.zip -O jtec_can.zip
-unzip jtec_can.zip
-pushd jtec_can
+mkdir -p /tmp/jtec_can
+wget -nv https://github.com/janztec/empc-x-linux-drivers/raw/master/src/jtec_can.zip -O /tmp/jtec_can/jtec_can.zip
+unzip /tmp/jtec_can/jtec_can.zip
+pushd /tmp/jtec_can
 make driver install
 
 if [ ! -f "/lib/modules/$KERNEL/kernel/drivers/net/can/sja1000/jtec_can.ko" ]; then
@@ -64,9 +65,10 @@ popd
 
 
 # Compile i2c-ixssm driver
-wget -nv https://github.com/janztec/empc-x-linux-drivers/raw/master/src/i2c-ixssm.zip -O i2c-ixssm.zip
-unzip i2c-ixssm.zip
-pushd i2c-ixssm
+mkdir -p /tmp/i2c-ixssm
+wget -nv https://github.com/janztec/empc-x-linux-drivers/raw/master/src/i2c-ixssm.zip -O /tmp/i2c-ixssm/i2c-ixssm.zip
+unzip /tmp/i2c-ixssm/i2c-ixssm.zip
+pushd /tmp/i2c-ixssm
 make driver install
 
 if [ ! -f "/lib/modules/$KERNEL/kernel/drivers/misc/i2c-ixssm.ko" ]; then
