@@ -18,7 +18,7 @@ Install Debian or Ubuntu operating system from DVD (64bit recommended)
 sudo bash
 cd /tmp
 wget https://raw.githubusercontent.com/janztec/empc-x-linux-drivers/master/install.sh -O install.sh
-bash install-experimental.sh
+bash install.sh
 ```
 
 ## Configure can baud rate
