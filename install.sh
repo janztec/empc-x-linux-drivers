@@ -154,7 +154,7 @@ fi
 chmod 755 /opt/janztec/services/empc-baudrate-config
 
 wget -nv https://raw.githubusercontent.com/janztec/empc-x-linux-drivers/master/src/empc-baudrate-config.service -O /usr/lib/systemd/system/empc-baudrate-config.service
-if [ ! -s "/etc/systemd/system/empc-baudrate-config.service" ]; then
+if [ ! -s "/usr/lib/systemd/system/empc-baudrate-config.service" ]; then
  echo -e "$ERR Error: Installation failed! (empc-baudrate-config.service not installed) $NC" 1>&2
  whiptail --title "Error" --msgbox "Installation failed! (empc-baudrate-config.service not installed)" 10 60
  exit 1
